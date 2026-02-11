@@ -47,18 +47,37 @@ MAX_CONTEXT_LENGTH: int = int(os.getenv("MAX_CONTEXT_LENGTH", "250000"))
 
 # --- Model Instance Factory ---
 
+def _parse_provider(model_name: str) -> str | None:
+    """Extract the provider name from a model string.
+
+    Supports both "provider:model" and "provider/model" formats.
+
+    Args:
+        model_name: Model name string.
+
+    Returns:
+        The provider name, or None if no provider prefix found.
+    """
+    if ":" in model_name:
+        return model_name.split(":", 1)[0]
+    if "/" in model_name:
+        return model_name.split("/", 1)[0]
+    return None
+
+
 def _get_base_url(model_name: str) -> str | None:
     """Determine the base_url based on the model's provider prefix.
 
     Args:
-        model_name: Model name in "provider:model" format.
+        model_name: Model name string.
 
     Returns:
         The base_url for the provider, or None if not set.
     """
-    if model_name.startswith("openai:"):
+    provider = _parse_provider(model_name)
+    if provider == "openai":
         return OPENAI_BASE_URL
-    if model_name.startswith("anthropic:"):
+    if provider == "anthropic":
         return ANTHROPIC_BASE_URL
     return None
 
@@ -66,11 +85,12 @@ def _get_base_url(model_name: str) -> str | None:
 def create_chat_model(model_name: str, **kwargs):
     """Create a chat model instance with centralized configuration.
 
-    Automatically applies the correct base_url based on the provider prefix.
-    Additional kwargs (e.g., max_tokens) are passed through to init_chat_model.
+    Supports both "provider:model" (LangChain native) and "provider/model"
+    (OpenRouter) formats. For "provider/model" format, automatically sets
+    model_provider and passes the full string as the model name.
 
     Args:
-        model_name: Model name in "provider:model" format.
+        model_name: Model name in "provider:model" or "provider/model" format.
         **kwargs: Additional arguments passed to init_chat_model.
 
     Returns:
@@ -79,6 +99,10 @@ def create_chat_model(model_name: str, **kwargs):
     base_url = _get_base_url(model_name)
     if base_url is not None:
         kwargs.setdefault("base_url", base_url)
+    # "provider/model" format (e.g. OpenRouter): extract provider explicitly
+    if ":" not in model_name and "/" in model_name:
+        provider = model_name.split("/", 1)[0]
+        kwargs.setdefault("model_provider", provider)
     return init_chat_model(model=model_name, **kwargs)
 
 

@@ -32,7 +32,7 @@ from typing_extensions import Literal
 
 def get_today_str() -> str:
     """Get current date in a human-readable format."""
-    return datetime.now().strftime("%a %b %-d, %Y")
+    return datetime.now().strftime("%a %b %d, %Y").replace(" 0", " ")
 
 # ===== WORKFLOW NODES =====
 
