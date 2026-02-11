@@ -12,27 +12,36 @@ maintaining isolated context windows for each research topic.
 
 import asyncio
 
-from typing_extensions import Literal
-
-from langchain.chat_models import init_chat_model
-from langchain_core.messages import (
-    HumanMessage, 
-    BaseMessage, 
-    SystemMessage, 
-    ToolMessage,
-    filter_messages
+from deep_research.config import (
+    MAX_CONCURRENT_RESEARCHERS as max_concurrent_researchers,
 )
-from langgraph.graph import StateGraph, START, END
-from langgraph.types import Command
-
-from deep_research.prompts import lead_researcher_with_multiple_steps_diffusion_double_check_prompt
+from deep_research.config import (
+    MAX_RESEARCHER_ITERATIONS as max_researcher_iterations,
+)
+from deep_research.config import (
+    supervisor_model,
+)
+from deep_research.prompts import (
+    lead_researcher_with_multiple_steps_diffusion_double_check_prompt,
+)
 from deep_research.research_agent import researcher_agent
 from deep_research.state_multi_agent_supervisor import (
-    SupervisorState, 
     ConductResearch,
-    ResearchComplete
+    ResearchComplete,
+    SupervisorState,
 )
-from deep_research.utils import get_today_str, think_tool, refine_draft_report
+from deep_research.utils import get_today_str, refine_draft_report, think_tool
+from langchain_core.messages import (
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+    filter_messages,
+)
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Command
+from typing_extensions import Literal
+
 
 def get_notes_from_tool_calls(messages: list[BaseMessage]) -> list[str]:
     """Extract research notes from ToolMessage objects in supervisor message history.
@@ -68,17 +77,7 @@ except ImportError:
 # ===== CONFIGURATION =====
 
 supervisor_tools = [ConductResearch, ResearchComplete, think_tool,refine_draft_report]
-supervisor_model = init_chat_model(model="openai:gpt-5")
 supervisor_model_with_tools = supervisor_model.bind_tools(supervisor_tools)
-
-# System constants
-# Maximum number of tool call iterations for individual researcher agents
-# This prevents infinite loops and controls research depth per topic
-max_researcher_iterations = 15 # Calls to think_tool + ConductResearch + refine_draft_report
-
-# Maximum number of concurrent research agents the supervisor can launch
-# This is passed to the lead_researcher_prompt to limit parallel research tasks
-max_concurrent_researchers = 3
 
 # ===== SUPERVISOR NODES =====
 
@@ -240,7 +239,7 @@ async def supervisor_tools(state: SupervisorState) -> Command[Literal["superviso
                 )
               )
 
-        except Exception as e:
+        except Exception:
             should_end = True
             next_step = END
 

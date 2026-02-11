@@ -6,17 +6,20 @@ This module provides search and content processing utilities for the research ag
 including web search capabilities and content summarization tools.
 """
 
-from pathlib import Path
 from datetime import datetime
-from typing_extensions import Annotated, List, Literal
+from pathlib import Path
 
-from langchain.chat_models import init_chat_model 
-from langchain_core.messages import HumanMessage
-from langchain_core.tools import tool, InjectedToolArg
-from tavily import TavilyClient
-
+from deep_research.config import MAX_CONTEXT_LENGTH, summarization_model
+from deep_research.config import draft_writer_model as writer_model
+from deep_research.prompts import (
+    report_generation_with_draft_insight_prompt,
+    summarize_webpage_prompt,
+)
 from deep_research.state_research import Summary
-from deep_research.prompts import summarize_webpage_prompt, report_generation_with_draft_insight_prompt
+from langchain_core.messages import HumanMessage
+from langchain_core.tools import InjectedToolArg, tool
+from tavily import TavilyClient
+from typing_extensions import Annotated, List, Literal
 
 # ===== UTILITY FUNCTIONS =====
 
@@ -39,10 +42,7 @@ def get_current_dir() -> Path:
 
 # ===== CONFIGURATION =====
 
-summarization_model = init_chat_model(model="openai:gpt-5")
-writer_model = init_chat_model(model="openai:gpt-5", max_tokens=32000)
 tavily_client = TavilyClient()
-MAX_CONTEXT_LENGTH = 250000
 
 # ===== SEARCH FUNCTIONS =====
 
@@ -63,7 +63,6 @@ def tavily_search_multiple(
     Returns:
         List of search result dictionaries
     """
-
     # Execute searches sequentially. Note: yon can use AsyncTavilyClient to parallelize this step.
     search_docs = []
     for query in search_queries:
@@ -255,7 +254,6 @@ def refine_draft_report(research_brief: Annotated[str, InjectedToolArg],
     Returns:
         refined draft report
     """
-
     draft_report_prompt = report_generation_with_draft_insight_prompt.format(
         research_brief=research_brief,
         findings=findings,

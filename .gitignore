@@ -1,0 +1,7 @@
+.env
+.idea
+thinkdepthai_deep_research.egg-info
+.claude
+uv.lock
+workbench.md
+CLAUDE.md

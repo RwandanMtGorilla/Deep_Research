@@ -10,15 +10,23 @@ whether sufficient context exists to proceed with research.
 """
 
 from datetime import datetime
-from typing_extensions import Literal
 
-from langchain.chat_models import init_chat_model
+from deep_research.config import default_model as creative_model
+from deep_research.config import default_model as model
+from deep_research.prompts import (
+    draft_report_generation_prompt,
+    transform_messages_into_research_topic_human_msg_prompt,
+)
+from deep_research.state_scope import (
+    AgentInputState,
+    AgentState,
+    DraftReport,
+    ResearchQuestion,
+)
 from langchain_core.messages import HumanMessage, get_buffer_string
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
 from langgraph.types import Command
-
-from deep_research.prompts import transform_messages_into_research_topic_human_msg_prompt, draft_report_generation_prompt, clarify_with_user_instructions
-from deep_research.state_scope import AgentState, ResearchQuestion, AgentInputState, DraftReport
+from typing_extensions import Literal
 
 # ===== UTILITY FUNCTIONS =====
 
@@ -26,23 +34,15 @@ def get_today_str() -> str:
     """Get current date in a human-readable format."""
     return datetime.now().strftime("%a %b %-d, %Y")
 
-# ===== CONFIGURATION =====
-
-# Initialize model
-model = init_chat_model(model="openai:gpt-5")
-creative_model = init_chat_model(model="openai:gpt-5")
-
 # ===== WORKFLOW NODES =====
 
 def clarify_with_user(state: AgentState) -> Command[Literal["write_research_brief"]]:
     #uncomment if you want to enable this module  
-    """
-    Determine if the user's request contains sufficient information to proceed with research.
+    """Determine if the user's request contains sufficient information to proceed with research.
 
     Uses structured output to make deterministic decisions and avoid hallucination.
     Routes to either research brief generation or ends with a clarification question.
     """
-
     """
     # Set up structured output model
     structured_output_model = model.with_structured_output(ClarifyWithUser)
@@ -68,8 +68,7 @@ def clarify_with_user(state: AgentState) -> Command[Literal["write_research_brie
     )
 
 def write_research_brief(state: AgentState) -> Command[Literal["write_draft_report"]]:
-    """
-    Transform the conversation history into a comprehensive research brief.
+    """Transform the conversation history into a comprehensive research brief.
 
     Uses structured output to ensure the brief follows the required format
     and contains all necessary details for effective research.
@@ -92,8 +91,7 @@ def write_research_brief(state: AgentState) -> Command[Literal["write_draft_repo
         )
 
 def write_draft_report(state: AgentState) -> Command[Literal["__end__"]]:
-    """
-    Final report generation node.
+    """Final report generation node.
 
     Synthesizes all research findings into a comprehensive final report
     """

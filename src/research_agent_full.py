@@ -1,6 +1,5 @@
 
-"""
-Full Multi-Agent Research System
+"""Full Multi-Agent Research System
 
 This module integrates all components of the research system:
 - User clarification and scoping
@@ -12,31 +11,30 @@ The system orchestrates the complete research workflow from initial user
 input through final report delivery.
 """
 
-from langchain_core.messages import HumanMessage
-from langgraph.graph import StateGraph, START, END
-
-from deep_research.utils import get_today_str
-from deep_research.prompts import final_report_generation_with_helpfulness_insightfulness_hit_citation_prompt
-from deep_research.state_scope import AgentState, AgentInputState
-from deep_research.research_agent_scope import clarify_with_user, write_research_brief, write_draft_report
-from deep_research.multi_agent_supervisor import supervisor_agent
-
 # ===== Config =====
-
-from langchain.chat_models import init_chat_model
-writer_model = init_chat_model(model="openai:gpt-5", max_tokens=40000) # model="anthropic:claude-sonnet-4-20250514", max_tokens=64000
+from deep_research.config import report_writer_model as writer_model
+from deep_research.multi_agent_supervisor import supervisor_agent
+from deep_research.prompts import (
+    final_report_generation_with_helpfulness_insightfulness_hit_citation_prompt,
+)
+from deep_research.research_agent_scope import (
+    clarify_with_user,
+    write_draft_report,
+    write_research_brief,
+)
+from deep_research.state_scope import AgentInputState, AgentState
+from deep_research.utils import get_today_str
+from langchain_core.messages import HumanMessage
+from langgraph.graph import END, START, StateGraph
 
 # ===== FINAL REPORT GENERATION =====
 
-from deep_research.state_scope import AgentState
 
 async def final_report_generation(state: AgentState):
-    """
-    Final report generation node.
+    """Final report generation node.
 
     Synthesizes all research findings into a comprehensive final report
     """
-
     notes = state.get("notes", [])
 
     findings = "\n".join(notes)
